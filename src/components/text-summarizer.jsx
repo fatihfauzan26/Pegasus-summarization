@@ -6,6 +6,7 @@ import {
   ResizablePanelGroup,
 } from "./ui/resizable";
 import { Textarea } from "./ui/textarea";
+import { Progress } from "./ui/progress";
 
 const HUGGINGFACE_KEY = import.meta.env.VITE_HUGGINGFACE_KEY;
 
@@ -13,6 +14,7 @@ const TextSummarizer = () => {
   const [inputText, setInputText] = useState("");
   const [summary, setSummary] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [inputWordCount, setInputWordCount] = useState(0);
   const [summaryWordCount, setSummaryWordCount] = useState(0);
 
@@ -36,33 +38,37 @@ const TextSummarizer = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setProgress(20);
 
     if (inputWordCount < 50) {
-      alert('Teks yang anda masukkan kurang dari 50 kata!')
-      setIsLoading(false)
-      return
+      alert('Teks yang anda masukkan kurang dari 50 kata!');
+      setIsLoading(false);
+      setProgress(0);
+      return;
     }
 
     try {
+      setProgress(50);
       const result = await hf.summarization({
         model: "fatihfauzan26/PEGASUS_mini",
         inputs: inputText,
         parameters: {
           min_length: 100,
           max_length: 300,
-        //   temperature: 1.1,
-        //   top_k: 900,
-        //   top_p: 0.95,
-        //   repetition_penalty: 2.1
         },
       });
+      setProgress(80);
       setSummary(result.summary_text);
     } catch (error) {
       console.error("Error:", error);
       setSummary("Terjadi kesalahan server. Coba beberapa saat lagi.");
     }
 
-    setIsLoading(false);
+    setProgress(100);
+    setTimeout(() => {
+      setIsLoading(false);
+      setProgress(0);
+    }, 500);
   };
 
   return (
@@ -86,9 +92,15 @@ const TextSummarizer = () => {
             >
               {isLoading ? "Summarizing..." : "Summarize"}
             </button>
+            {isLoading && (
+              <div className="mt-4">
+                <Progress value={progress} />
+                <p className="text-center mt-2 text-sm text-gray-600">{progress}%</p>
+              </div>
+            )}
           </form>
           <div className="mt-5 text text-black-500">
-          Jumlah kata sebelum peringkasan: <span className="border border-solid border-gray-950 rounded text-red-500 p-1">{inputWordCount}</span> 
+            Jumlah kata sebelum peringkasan: <span className="border border-solid border-gray-950 rounded text-red-500 p-1">{inputWordCount}</span>
           </div>
         </div>
       </ResizablePanel>
@@ -96,9 +108,8 @@ const TextSummarizer = () => {
       <ResizablePanel defaultSize={50}>
         <div className="flex h-full flex-col p-6">
           <div className="flex-grow p-2 border rounded overflow-auto mb-4">
-            {/* {summary ? summary : "Hasil summarization."} */}
             <Textarea
-              value={summary || ""} // Jika summary null/undefined, gunakan string kosong
+              value={summary || ""}
               placeholder={!summary ? "Hasil summarization." : ""}
               className={`flex-grow p-4 mb-4 border rounded resize-none`}
             />
@@ -115,7 +126,7 @@ const TextSummarizer = () => {
             Hapus teks
           </button>
           <div className="mt-5 text text-black-500">
-            Jumlah kata setelah peringkasan: <span className = "border rounded text-blue-500 p-1"> {summaryWordCount}</span>
+            Jumlah kata setelah peringkasan: <span className="border rounded text-blue-500 p-1">{summaryWordCount}</span>
           </div>
         </div>
       </ResizablePanel>
